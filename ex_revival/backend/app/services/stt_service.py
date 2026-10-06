@@ -80,6 +80,8 @@ def get_stt_service() -> STTService:
     provider = settings.STT_PROVIDER.lower()
     if provider == "openai" and settings.STT_API_KEY:
         return OpenAISTTService(api_key=settings.STT_API_KEY)
+    if settings.APP_ENV == "production" and not settings.MOCK_AI:
+        raise RuntimeError(f"STT provider '{provider}' is unconfigured or missing API key in production mode. Silent fallback is prohibited.")
     return MockSTTService()
 
 

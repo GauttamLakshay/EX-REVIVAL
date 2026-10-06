@@ -40,11 +40,16 @@ class ChatterboxVoiceEngine(VoiceEngine):
                 if resp.status_code == 200:
                     data = resp.json()
                     return data["generated_audio_path"]
+                elif settings.APP_ENV == "production" and not settings.MOCK_AI:
+                    raise RuntimeError(f"Voice microservice returned error ({resp.status_code}): {resp.text}")
         except Exception as e:
-            # Fallback to local in-process Chatterbox synthesizer
+            if settings.APP_ENV == "production" and not settings.MOCK_AI:
+                raise RuntimeError(f"Voice service microservice unreachable in production mode: {str(e)}")
             pass
 
-        # 2. Local in-process synthesis fallback
+        # 2. Local in-process synthesis fallback (development only)
+        if settings.APP_ENV == "production" and not settings.MOCK_AI:
+            raise RuntimeError("External GPU voice microservice required in production mode. Silent fallback is prohibited.")
         try:
             from voice_service.app.inference import synthesizer
             audio_path, duration, latency_ms = synthesizer.synthesize(

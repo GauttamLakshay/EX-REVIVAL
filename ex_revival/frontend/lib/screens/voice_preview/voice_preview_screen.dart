@@ -85,7 +85,7 @@ class _VoicePreviewScreenState extends State<VoicePreviewScreen> {
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.primary.withOpacity(0.15) : AppTheme.surfaceElevated,
+                  color: isSelected ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isSelected ? AppTheme.primary : const Color(0xFF282C40),
@@ -148,10 +148,10 @@ class _VoicePreviewScreenState extends State<VoicePreviewScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.accent.withOpacity(0.4), width: 1.2),
+                  border: Border.all(color: AppTheme.accent.withValues(alpha: 0.4), width: 1.2),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.accentGlow.withOpacity(0.2),
+                      color: AppTheme.accentGlow.withValues(alpha: 0.2),
                       blurRadius: 20,
                     ),
                   ],

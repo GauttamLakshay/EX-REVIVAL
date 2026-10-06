@@ -55,6 +55,8 @@ class ChatterboxSynthesizer:
             # audio = self.model.generate(text=text, prompt_speech=reference_audio_path, language=language)
             # sf.write(str(output_path), audio, self.sample_rate)
             pass
+        elif not settings.USE_MOCK_FALLBACK:
+            raise RuntimeError("Real Chatterbox Multilingual V3 model weights/GPU unavailable and fallback is disabled.")
 
         # High-Fidelity Acoustic Fallback Engine:
         # Analyzes the reference audio (sample rate, fundamental frequency, pitch contour, spectral envelope)

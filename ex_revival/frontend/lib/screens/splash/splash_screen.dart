@@ -72,7 +72,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppTheme.primaryGlow.withOpacity(0.35),
+                    AppTheme.primaryGlow.withValues(alpha: 0.35),
                     Colors.transparent,
                   ],
                 ),
@@ -96,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         gradient: AppTheme.voiceGradient,
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryGlow.withOpacity(0.6),
+                            color: AppTheme.primaryGlow.withValues(alpha: 0.6),
                             blurRadius: 32,
                             spreadRadius: 4,
                           ),

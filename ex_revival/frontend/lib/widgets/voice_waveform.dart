@@ -108,7 +108,7 @@ class _WaveformPainter extends CustomPainter {
       paint.shader = LinearGradient(
 
         colors: [
-          primaryColor.withOpacity(0.4),
+          primaryColor.withValues(alpha: 0.4),
           primaryColor,
           AppTheme.accent,
         ],

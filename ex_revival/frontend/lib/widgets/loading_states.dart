@@ -107,9 +107,9 @@ class ConversationStateIndicatorWidget extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: AppTheme.error.withOpacity(0.15),
+          color: AppTheme.error.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+          border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -153,7 +153,7 @@ class ConversationStateIndicatorWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceElevated,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

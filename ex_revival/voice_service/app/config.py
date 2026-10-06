@@ -23,6 +23,9 @@ class VoiceServiceSettings(BaseSettings):
     def get_storage_path(self) -> Path:
         p = Path(self.STORAGE_PATH)
         if not p.is_absolute():
+            voice_dir = Path(__file__).resolve().parent.parent
+            if str(self.STORAGE_PATH).startswith(".."):
+                return (voice_dir / p).resolve()
             return (PROJECT_ROOT / p).resolve()
         return p.resolve()
 

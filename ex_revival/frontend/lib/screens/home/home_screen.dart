@@ -82,10 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: AppTheme.darkCardGradient,
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AppTheme.primary.withOpacity(0.35), width: 1.2),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.35), width: 1.2),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryGlow.withOpacity(0.15),
+                            color: AppTheme.primaryGlow.withValues(alpha: 0.15),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.record_voice_over_outlined, color: AppTheme.textMuted.withOpacity(0.4), size: 68),
+                      Icon(Icons.record_voice_over_outlined, color: AppTheme.textMuted.withValues(alpha: 0.4), size: 68),
                       const SizedBox(height: 16),
                       const Text(
                         'No Revivals Created Yet',

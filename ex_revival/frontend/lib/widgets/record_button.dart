@@ -55,7 +55,7 @@ class _RecordButtonWidgetState extends State<RecordButtonWidget> with SingleTick
           color: AppTheme.surfaceElevated,
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryGlow.withOpacity(0.3),
+              color: AppTheme.primaryGlow.withValues(alpha: 0.3),
               blurRadius: 20,
               spreadRadius: 2,
             ),

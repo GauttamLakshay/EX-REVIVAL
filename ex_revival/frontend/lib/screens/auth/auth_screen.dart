@@ -67,7 +67,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         gradient: AppTheme.primaryGradient,
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryGlow.withOpacity(0.4),
+                            color: AppTheme.primaryGlow.withValues(alpha: 0.4),
                             blurRadius: 20,
                           ),
                         ],
@@ -107,9 +107,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       padding: const EdgeInsets.all(14),
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: AppTheme.error.withOpacity(0.15),
+                        color: AppTheme.error.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.error.withOpacity(0.4)),
+                        border: Border.all(color: AppTheme.error.withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         children: [

@@ -24,7 +24,7 @@ class RevivalCardWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFF232738), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -51,7 +51,7 @@ class RevivalCardWidget extends StatelessWidget {
                         gradient: AppTheme.primaryGradient,
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryGlow.withOpacity(0.4),
+                            color: AppTheme.primaryGlow.withValues(alpha: 0.4),
                             blurRadius: 12,
                           ),
                         ],
@@ -101,13 +101,13 @@ class RevivalCardWidget extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: revival.hasVoice
-                            ? AppTheme.success.withOpacity(0.15)
-                            : AppTheme.warning.withOpacity(0.15),
+                            ? AppTheme.success.withValues(alpha: 0.15)
+                            : AppTheme.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: revival.hasVoice
-                              ? AppTheme.success.withOpacity(0.4)
-                              : AppTheme.warning.withOpacity(0.4),
+                              ? AppTheme.success.withValues(alpha: 0.4)
+                              : AppTheme.warning.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Row(

@@ -46,8 +46,10 @@ class Settings(BaseSettings):
     def get_storage_path(self) -> Path:
         p = Path(self.STORAGE_LOCAL_PATH)
         if not p.is_absolute():
-            root = Path(__file__).resolve().parent.parent.parent
-            return (root / p).resolve()
+            backend_dir = Path(__file__).resolve().parent.parent
+            if str(self.STORAGE_LOCAL_PATH).startswith(".."):
+                return (backend_dir / p).resolve()
+            return (backend_dir.parent / p).resolve()
         return p.resolve()
 
     model_config = SettingsConfigDict(

@@ -26,7 +26,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.history_toggle_off_rounded, color: AppTheme.textMuted.withOpacity(0.4), size: 60),
+                  Icon(Icons.history_toggle_off_rounded, color: AppTheme.textMuted.withValues(alpha: 0.4), size: 60),
                   const SizedBox(height: 16),
                   const Text(
                     'No Active History',

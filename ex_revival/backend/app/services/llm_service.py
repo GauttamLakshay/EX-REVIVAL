@@ -181,6 +181,8 @@ def get_llm_service() -> LLMService:
         return OpenAILLMService(api_key=settings.LLM_API_KEY, model=settings.LLM_MODEL)
     elif provider == "gemini" and settings.GEMINI_API_KEY:
         return GeminiLLMService(api_key=settings.GEMINI_API_KEY)
+    if settings.APP_ENV == "production" and not settings.MOCK_AI:
+        raise RuntimeError(f"LLM provider '{provider}' is unconfigured or missing API key in production mode. Silent fallback is prohibited.")
     return MockLLMService()
 
 

@@ -113,10 +113,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 radius: 1.2,
                 colors: [
                   conv.isSpeaking
-                      ? AppTheme.accentGlow.withOpacity(0.3)
+                      ? AppTheme.accentGlow.withValues(alpha: 0.3)
                       : (conv.isRecording
                           ? const Color(0x33EF4444)
-                          : AppTheme.primaryGlow.withOpacity(0.2)),
+                          : AppTheme.primaryGlow.withValues(alpha: 0.2)),
                   Colors.transparent,
                 ],
               ),
@@ -183,7 +183,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         children: [
                           Icon(
                             Icons.mic_none_rounded,
-                            color: AppTheme.textMuted.withOpacity(0.3),
+                            color: AppTheme.textMuted.withValues(alpha: 0.3),
                             size: 54,
                           ),
                           const SizedBox(height: 12),

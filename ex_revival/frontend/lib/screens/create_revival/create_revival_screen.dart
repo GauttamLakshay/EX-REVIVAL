@@ -359,7 +359,7 @@ class _CreateRevivalScreenState extends State<CreateRevivalScreen> {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: BorderSide(
-                                color: _isRecording ? AppTheme.error : AppTheme.primary.withOpacity(0.5),
+                                color: _isRecording ? AppTheme.error : AppTheme.primary.withValues(alpha: 0.5),
                               ),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
@@ -374,7 +374,7 @@ class _CreateRevivalScreenState extends State<CreateRevivalScreen> {
                             label: const Text('Upload File', style: TextStyle(color: AppTheme.textPrimary)),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(color: AppTheme.accent.withOpacity(0.5)),
+                              side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.5)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
                           ),
