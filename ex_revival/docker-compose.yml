@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ex_revival_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ex_user
+      POSTGRES_PASSWORD: ex_password
+      POSTGRES_DB: ex_revival
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ex_user -d ex_revival"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ex_revival_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=postgresql+asyncpg://ex_user:ex_password@db:5432/ex_revival
+      - JWT_SECRET=change_this_to_a_secure_jwt_secret_in_prod
+      - VOICE_SERVICE_URL=http://voice_service:8001
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_PATH=/app/storage
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+
+  voice_service:
+    build:
+      context: ./voice_service
+      dockerfile: Dockerfile
+    container_name: ex_revival_voice
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - MODEL_DEVICE=cpu
+      - USE_MOCK_FALLBACK=true
+    volumes:
+      - ./storage:/app/storage
+      - ./voice_service/models:/app/models
+
+volumes:
+  postgres_data:
