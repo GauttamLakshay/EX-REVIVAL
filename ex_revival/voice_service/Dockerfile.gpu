@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install GPU Python dependencies pinned for ResembleAI/chatterbox
+# Install official ResembleAI/chatterbox dependencies with PyTorch 2.6.0
 COPY requirements-gpu.txt .
 RUN pip install --no-cache-dir -r requirements-gpu.txt
 

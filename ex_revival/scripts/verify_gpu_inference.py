@@ -2,7 +2,7 @@
 """
 EX REVIVAL — Official Resemble AI Chatterbox Multilingual V3 GPU Diagnostics.
 Verifies the exact neural pipeline:
-CUDA Available -> Package Imported -> Official Model Loaded on CUDA -> Audio Accepted -> Neural Generation -> Output WAV.
+CUDA Available -> Package Imported -> Official Model Loaded on CUDA (t3_mtl23ls_v3.safetensors) -> Audio Accepted -> Neural Generation -> Output WAV.
 """
 
 import sys
@@ -21,18 +21,31 @@ def run_diagnostics():
     print("EX REVIVAL — CHATTERBOX V3 OFFICIAL NEURAL INFERENCE AUDIT")
     print("=" * 70)
 
-    # Step 1: CUDA Check
-    print("\n[Step 1/6] Checking CUDA runtime...")
+    # Step 1: PyTorch, Torchaudio & CUDA Runtime Check
+    print("\n[Step 1/6] Checking PyTorch, Torchaudio & CUDA runtime...")
     torch_available = False
+    torchaudio_available = False
     cuda_available = False
     device_name = "cpu"
+    torch_ver = "None"
+    ta_ver = "None"
 
     try:
         import torch
         torch_available = True
+        torch_ver = torch.__version__
         cuda_available = torch.cuda.is_available()
-        print(f"  PyTorch Installed: {torch.__version__}")
+        print(f"  PyTorch Installed: {torch_ver}")
         print(f"  CUDA Available: {cuda_available}")
+
+        try:
+            import torchaudio
+            torchaudio_available = True
+            ta_ver = torchaudio.__version__
+            print(f"  Torchaudio Installed: {ta_ver}")
+        except ImportError:
+            print("  Torchaudio: Not installed")
+
         if cuda_available:
             dev_idx = 0
             device_name = f"cuda:{dev_idx}"
@@ -59,8 +72,14 @@ def run_diagnostics():
         print(f"  FAIL: Could not import official 'chatterbox.mtl_tts' ({e}).")
         print("  (Install in GPU environment: pip install chatterbox-tts)")
 
-    # Step 3: Official Model Load
-    print("\n[Step 3/6] Loading official Chatterbox Multilingual V3 model...")
+    # Step 3: Official Model Checkpoint & Asset Check
+    print("\n[Step 3/6] Inspecting Chatterbox V3 Assets & Checkpoints...")
+    checkpoint_dir = ROOT_DIR / "voice_service" / "models" / "chatterbox_v3"
+    t3_checkpoint = checkpoint_dir / "t3_mtl23ls_v3.safetensors"
+    has_v3_checkpoint = t3_checkpoint.exists()
+    print(f"  Target Checkpoint Directory: {checkpoint_dir}")
+    print(f"  V3 Checkpoint (t3_mtl23ls_v3.safetensors): {'PRESENT' if has_v3_checkpoint else 'MISSING'}")
+
     model = None
     model_loaded = False
     if chatterbox_imported and torch_available:

@@ -1,11 +1,11 @@
---extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cu124
 
-# PyTorch 2.5.1 CUDA 12.1 Stack (pinned for ResembleAI/chatterbox compatibility)
-torch>=2.4.0,<=2.5.1
-torchaudio>=2.4.0,<=2.5.1
-torchvision>=0.19.0,<=0.20.1
+# Official PyTorch 2.6.0 Stack for ResembleAI/chatterbox
+torch==2.6.0
+torchaudio==2.6.0
+torchvision==0.21.0
 
-# Official Resemble AI Chatterbox Package & Submodules
+# Official Resemble AI Chatterbox Package & Core Components
 chatterbox-tts
 resemble-perth>=1.0.1
 conformer>=0.3.2
@@ -21,7 +21,7 @@ omegaconf
 accelerate>=0.28.0
 huggingface-hub>=0.22.0
 
-# Audio Processing & Scientific Stack
+# Audio & Numerical Backend
 soundfile>=0.12.1
 numpy>=1.24.0,<2.0.0
 scipy>=1.12.0
