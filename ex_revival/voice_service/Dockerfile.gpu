@@ -1,0 +1,35 @@
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+
+WORKDIR /app
+
+# Install system audio codecs and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsndfile1 \
+    ffmpeg \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set CUDA container runtime variables
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install GPU Python dependencies
+COPY requirements-gpu.txt .
+RUN pip install --no-cache-dir -r requirements-gpu.txt
+
+# Copy service code
+COPY . /app/voice_service
+
+# Pre-create models and storage mount directories
+RUN mkdir -p /app/voice_service/models /app/storage
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Launch single-process worker to conserve GPU VRAM
+CMD ["uvicorn", "voice_service.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

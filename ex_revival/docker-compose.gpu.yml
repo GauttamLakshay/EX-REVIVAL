@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ex_revival_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ex_user
+      POSTGRES_PASSWORD: ex_password
+      POSTGRES_DB: ex_revival
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ex_user -d ex_revival"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  voice_service:
+    build:
+      context: ./voice_service
+      dockerfile: Dockerfile.gpu
+    container_name: ex_revival_voice_gpu
+    restart: unless-stopped
+    ipc: host  # PyTorch CUDA tensor shared memory requirement
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - HOST=0.0.0.0
+      - MODEL_DEVICE=cuda
+      - CUDA_DEVICE_INDEX=0
+      - USE_FP16=true
+      - WARMUP_ON_STARTUP=true
+      - USE_MOCK_FALLBACK=false
+      - MODEL_CHECKPOINT_PATH=/app/voice_service/models/chatterbox_v3
+      - STORAGE_PATH=/app/storage
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      - ./storage:/app/storage
+      - ./voice_service/models:/app/voice_service/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ex_revival_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      voice_service:
+        condition: service_started
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://ex_user:ex_password@db:5432/ex_revival
+      - JWT_SECRET=ex_revival_production_secure_secret_key_change_me
+      - VOICE_SERVICE_URL=http://voice_service:8001
+      - VOICE_ENGINE_PROVIDER=chatterbox
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_PATH=/app/storage
+      - MOCK_AI=false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+
+volumes:
+  postgres_data:
