@@ -8,18 +8,17 @@ from voice_service.app.inference import synthesizer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: hardware confirmation
-    gpu_info = synthesizer.get_gpu_info()
-    print(f"[Voice Service] Initialized with engine: {gpu_info['engine']} on {gpu_info['device']}")
-    if gpu_info.get("gpu_name"):
-        print(f"[Voice Service] CUDA GPU: {gpu_info['gpu_name']}")
+    # Startup: hardware and model confirmation
+    telemetry = synthesizer.get_health_telemetry()
+    print(f"[Voice Service] Active Engine: {telemetry['engine']} on {telemetry['device']}")
+    if telemetry.get("gpu_name"):
+        print(f"[Voice Service] GPU: {telemetry['gpu_name']}")
     yield
-    # Shutdown logic if needed
 
 
 app = FastAPI(
     title="EX REVIVAL — Chatterbox Voice Service",
-    description="Dedicated GPU microservice for Chatterbox Multilingual V3 voice synthesis",
+    description="Dedicated GPU microservice for Resemble AI Chatterbox Multilingual V3 voice synthesis",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -35,26 +34,24 @@ app.add_middleware(
 
 @app.get("/health")
 async def health_check():
-    """Returns service health and live GPU hardware telemetry."""
-    gpu_info = synthesizer.get_gpu_info()
-    return {
-        "status": "ok",
-        "service": "chatterbox_voice_service",
-        **gpu_info
-    }
+    """
+    Returns service health and live GPU hardware telemetry.
+    Strictly distinguishes between real neural Chatterbox and acoustic fallback.
+    """
+    return synthesizer.get_health_telemetry()
 
 
 @app.get("/gpu")
 async def gpu_telemetry():
     """Detailed GPU compute and VRAM telemetry."""
-    return synthesizer.get_gpu_info()
+    return synthesizer.get_health_telemetry()
 
 
 @app.post("/synthesize", response_model=SynthesizeResponse)
 async def synthesize(payload: SynthesizeRequest):
     """Synthesizes text into speech using reference audio clone on GPU."""
     try:
-        audio_path, duration, latency_ms = synthesizer.synthesize(
+        audio_path, duration, latency_ms, engine_used = synthesizer.synthesize(
             text=payload.text,
             reference_audio_path=payload.reference_audio,
             language=payload.language or "en",
@@ -66,7 +63,7 @@ async def synthesize(payload: SynthesizeRequest):
             duration_seconds=duration,
             sample_rate=synthesizer.sample_rate,
             latency_ms=latency_ms,
-            engine="chatterbox_v3_neural" if synthesizer.is_loaded else "chatterbox_v3_acoustic",
+            engine=engine_used,
         )
     except Exception as e:
         raise HTTPException(

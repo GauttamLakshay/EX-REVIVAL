@@ -19,7 +19,7 @@ class VoiceServiceSettings(BaseSettings):
 
     # Model Artifacts & HuggingFace
     MODEL_CHECKPOINT_PATH: str = "./models/chatterbox_v3"
-    MODEL_REPO_ID: str = "chatterbox-ai/chatterbox-multilingual-v3"
+    MODEL_REPO_ID: str = "ResembleAI/chatterbox"
     HF_TOKEN: str = ""
     AUTO_DOWNLOAD_WEIGHTS: bool = False
 

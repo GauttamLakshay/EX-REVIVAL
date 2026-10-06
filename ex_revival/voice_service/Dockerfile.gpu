@@ -1,13 +1,14 @@
-FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
 
 WORKDIR /app
 
-# Install system audio codecs and dependencies
+# Install system audio codecs, compilation tools, and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsndfile1 \
     ffmpeg \
     curl \
     git \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Set CUDA container runtime variables
@@ -16,7 +17,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install GPU Python dependencies
+# Install GPU Python dependencies pinned for ResembleAI/chatterbox
 COPY requirements-gpu.txt .
 RUN pip install --no-cache-dir -r requirements-gpu.txt
 

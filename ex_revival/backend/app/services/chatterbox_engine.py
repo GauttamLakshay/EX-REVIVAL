@@ -52,13 +52,13 @@ class ChatterboxVoiceEngine(VoiceEngine):
             raise RuntimeError("External GPU voice microservice required in production mode. Silent fallback is prohibited.")
         try:
             from voice_service.app.inference import synthesizer
-            audio_path, duration, latency_ms = synthesizer.synthesize(
+            res = synthesizer.synthesize(
                 text=text,
                 reference_audio_path=reference_audio_path,
                 language=language or "en",
                 emotion=emotion or "neutral",
             )
-            return audio_path
+            return res[0]
         except Exception as local_err:
             raise RuntimeError(f"Chatterbox voice synthesis failed: {str(local_err)}")
 
