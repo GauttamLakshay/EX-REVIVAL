@@ -42,6 +42,7 @@ class RevivalResponse(BaseModel):
     speaking_style: str
     relationship_context: str
     reference_audio_path: Optional[str] = None
+    personality_dna: Optional[str] = None
     voice_authorized: bool
     created_at: datetime
     updated_at: datetime
@@ -69,3 +70,7 @@ class VoicePreviewResponse(BaseModel):
     phrase: str
     duration_seconds: float
     latency_ms: int
+    engine: Optional[str] = "chatterbox_v3_neural"
+    device: Optional[str] = "cpu"
+    model_loaded: Optional[bool] = True
+    model_version: Optional[str] = "v3"

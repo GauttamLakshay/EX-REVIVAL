@@ -16,6 +16,7 @@ class Revival(Base):
     speaking_style = Column(Text, nullable=False, default="")
     relationship_context = Column(Text, nullable=False, default="")
     reference_audio_path = Column(String(500), nullable=True)
+    personality_dna = Column(Text, nullable=True)
     voice_authorized = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)

@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +22,7 @@ from app.dependencies import get_current_user, verify_revival_ownership
 from app.services.audio_service import audio_service, AudioValidationError
 from app.services.storage_service import storage_service
 from app.services.chatterbox_engine import chatterbox_engine
+from app.services.personality_service import personality_service
 
 router = APIRouter(prefix="/revivals", tags=["Revivals"])
 
@@ -144,9 +146,21 @@ async def upload_reference_voice(
     # Save to storage
     stored_path = await storage_service.save_reference_audio(normalized_bytes, ".wav")
 
-    # Update Revival
+    # Update Revival & Extract Personality DNA
     revival.reference_audio_path = stored_path
     revival.voice_authorized = voice_authorized
+
+    try:
+        dna = await personality_service.extract_personality_dna(
+            audio_path=stored_path,
+            language=revival.language,
+            character_name=revival.name,
+            personality_desc=revival.personality,
+            speaking_style_desc=revival.speaking_style,
+        )
+        revival.personality_dna = json.dumps(dna, ensure_ascii=False)
+    except Exception as dna_err:
+        print(f"[Revival] Personality profiling non-fatal notice: {dna_err}")
 
     # Create VoiceAsset record
     voice_asset = VoiceAsset(
@@ -212,11 +226,17 @@ async def preview_voice_sample(
 
     start_time = time.time()
     try:
+        synth_lang = revival.language or "en"
+        if any('\u0900' <= char <= '\u097F' for char in payload.phrase):
+            synth_lang = "hi"
+
         gen_path = await chatterbox_engine.synthesize(
             text=payload.phrase,
             reference_audio_path=revival.reference_audio_path,
-            language=revival.language,
-            emotion="warm",
+            language=synth_lang,
+            emotion=revival.speaking_style or "warm",
+            exaggeration=0.72,
+            cfg_weight=0.68,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Preview synthesis failed: {str(e)}")
@@ -224,9 +244,18 @@ async def preview_voice_sample(
     latency_ms = int((time.time() - start_time) * 1000)
     audio_url = storage_service.get_audio_url(gen_path)
 
+    telem = chatterbox_engine.last_telemetry or {}
+    engine_name = telem.get("engine", "chatterbox_v3_neural")
+    duration = telem.get("duration_seconds", 2.0)
+    health = await chatterbox_engine.get_health_telemetry()
+
     return VoicePreviewResponse(
         audio_url=audio_url or "",
         phrase=payload.phrase,
-        duration_seconds=2.0,
+        duration_seconds=duration,
         latency_ms=latency_ms,
+        engine=engine_name,
+        device=health.get("device", "cpu"),
+        model_loaded=health.get("model_loaded", True),
+        model_version=health.get("model_version", "v3"),
     )
