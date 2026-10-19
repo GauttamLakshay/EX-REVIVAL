@@ -7,6 +7,7 @@ from typing import Tuple, Dict, Any, Optional
 import numpy as np
 import soundfile as sf
 from voice_service.app.config import settings
+from voice_service.app.affect_shaper import affect_shaper
 
 logger = logging.getLogger("chatterbox.inference")
 logging.basicConfig(level=logging.INFO)
@@ -38,13 +39,14 @@ class ChatterboxSynthesizer:
             self.warmup()
 
     def _setup_hardware(self):
-        """Discovers PyTorch CUDA runtime and configures target device."""
+        """Discovers PyTorch CUDA / MPS runtime and configures target device with priority CUDA -> MPS -> CPU."""
         try:
             import torch
             has_cuda = torch.cuda.is_available()
+            has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
             self.cuda_available = has_cuda
 
-            target_device = settings.MODEL_DEVICE.lower()
+            target_device = (os.environ.get("VOICE_DEVICE") or settings.MODEL_DEVICE).lower()
             if target_device in ["cuda", "gpu"] or (target_device == "auto" and has_cuda):
                 if has_cuda:
                     dev_idx = min(settings.CUDA_DEVICE_INDEX, torch.cuda.device_count() - 1)
@@ -56,6 +58,10 @@ class ChatterboxSynthesizer:
                     logger.warning("[Chatterbox Hardware] CUDA requested but not available. Defaulting to CPU.")
                     self.device = "cpu"
                     self.device_type = "cpu"
+            elif target_device == "mps" or (target_device == "auto" and has_mps):
+                self.device = "mps"
+                self.device_type = "mps"
+                logger.info("[Chatterbox Hardware] Device set to Apple Silicon MPS.")
             else:
                 self.device = "cpu"
                 self.device_type = "cpu"
@@ -99,14 +105,15 @@ class ChatterboxSynthesizer:
 
         # Model is NOT loaded
         self.is_loaded = False
-        self.engine = "acoustic_fallback"
         self.model_version = None
-
-        if not settings.USE_MOCK_FALLBACK:
+        is_production = os.environ.get("APP_ENV", "").lower() == "production" or os.environ.get("MOCK_AI", "").lower() == "false"
+        if not settings.USE_MOCK_FALLBACK or is_production:
+            self.engine = "unavailable"
             raise RuntimeError(
                 "Official Chatterbox Multilingual V3 neural model failed to load "
                 "and fallback is disabled in production mode."
             )
+        self.engine = "acoustic_fallback"
         logger.info("[Chatterbox] Running with acoustic synthesis engine fallback (Development Mode).")
 
     def warmup(self):
@@ -168,9 +175,15 @@ class ChatterboxSynthesizer:
         reference_audio_path: str,
         language: str = "en",
         emotion: str = "neutral",
+        exaggeration: float = 0.70,
+        cfg_weight: float = 0.65,
+        temperature: float = 0.80,
+        pitch_shift_semitones: float = 0.0,
+        tempo_scale: float = 1.0,
     ) -> Tuple[str, float, int, str]:
         """
         Synthesizes text conditioned on reference audio prompt.
+        Supports affect retargeting (pitch shifting, tempo scaling, and spectral shaping).
         Returns: (output_wav_path, duration_seconds, latency_ms, engine_name)
         """
         start_time = time.time()
@@ -186,12 +199,14 @@ class ChatterboxSynthesizer:
         if self.is_loaded and self.model is not None:
             try:
                 import torch
-                # Call official Chatterbox Multilingual V3 generate method
-                # Signature: generate(text, language_id, audio_prompt_path, ...)
+                # Call official Chatterbox Multilingual V3 generate method with prosody & accent controls
                 wav = self.model.generate(
                     text=text,
                     language_id=language or "en",
-                    audio_prompt_path=str(ref_path)
+                    audio_prompt_path=str(ref_path),
+                    exaggeration=exaggeration,
+                    cfg_weight=cfg_weight,
+                    temperature=temperature,
                 )
 
                 if isinstance(wav, torch.Tensor):
@@ -199,26 +214,37 @@ class ChatterboxSynthesizer:
                 else:
                     wav_data = np.asarray(wav, dtype=np.float32).squeeze()
 
-                # Normalize to prevent clipping
-                max_val = np.max(np.abs(wav_data)) + 1e-6
-                if max_val > 1.0:
-                    wav_data = wav_data / max_val * 0.95
-
                 sr = getattr(self.model, "sr", self.sample_rate)
+
+                # Affect Retargeting & Post-Processing (Pitch shift, tempo scale, spectral affect shaping, peak normalization)
+                wav_data = affect_shaper.retarget_waveform(
+                    wav_data=wav_data,
+                    sample_rate=sr,
+                    pitch_shift_semitones=pitch_shift_semitones,
+                    tempo_scale=tempo_scale,
+                    emotion=emotion,
+                )
+
                 sf.write(str(output_path), wav_data, sr, subtype="PCM_16")
                 duration = round(len(wav_data) / sr, 2)
                 elapsed_ms = int((time.time() - start_time) * 1000)
-                logger.info(f"[Chatterbox Neural V3] Synthesized {duration}s in {elapsed_ms}ms on {self.device}.")
+                logger.info(
+                    f"[Chatterbox Neural V3] Synthesized {duration}s "
+                    f"(emotion='{emotion}', exaggeration={exaggeration}, cfg={cfg_weight}, pitch_shift={pitch_shift_semitones}) "
+                    f"in {elapsed_ms}ms on {self.device}."
+                )
                 return str(output_path), duration, elapsed_ms, "chatterbox_v3_neural"
 
             except Exception as neural_err:
                 logger.error(f"[Chatterbox Neural] Generation failed: {neural_err}")
-                if not settings.USE_MOCK_FALLBACK:
+                is_prod = os.environ.get("APP_ENV", "").lower() == "production" or os.environ.get("MOCK_AI", "").lower() == "false"
+                if not settings.USE_MOCK_FALLBACK or is_prod:
                     raise RuntimeError(f"Chatterbox neural inference failed: {neural_err}")
                 logger.warning("[Chatterbox] Falling back to acoustic synthesis engine.")
 
         # 2. Strict Production Guard
-        if not self.is_loaded and not settings.USE_MOCK_FALLBACK:
+        is_prod = os.environ.get("APP_ENV", "").lower() == "production" or os.environ.get("MOCK_AI", "").lower() == "false"
+        if not self.is_loaded and (not settings.USE_MOCK_FALLBACK or is_prod):
             raise RuntimeError(
                 "Official Chatterbox Multilingual V3 neural model is not loaded. "
                 "Silent fallback to acoustic synthesis is prohibited in production mode."
@@ -227,6 +253,12 @@ class ChatterboxSynthesizer:
         # 3. Development Acoustic Fallback
         out_p, dur, ms = self._synthesize_acoustic(text, ref_path, output_path, start_time)
         return out_p, dur, ms, "acoustic_fallback"
+
+    def analyze_voice(self, reference_audio_path: str) -> Dict[str, Any]:
+        """Analyzes reference voice audio to extract acoustic metrics and affect bias."""
+        storage_base = settings.get_storage_path()
+        ref_path = self._resolve_audio_path(reference_audio_path, storage_base)
+        return affect_shaper.analyze_acoustic_affect(str(ref_path))
 
     def _resolve_audio_path(self, reference_audio_path: str, storage_base: Path) -> Path:
         """Resolves reference audio file path."""
