@@ -11,12 +11,23 @@ __pycache__/
 .env
 .env.local
 
-# Storage
-storage/reference_audio/*
+# Storage & Audio Assets
+storage/*
+!storage/.gitkeep
 !storage/reference_audio/.gitkeep
-storage/generated_audio/*
 !storage/generated_audio/.gitkeep
 storage/temp/*
+test_*.wav
+benchmark_*.wav
+cpu_test.wav
+
+# Neural Weights & Model Checkpoints
+voice_service/models/*
+!voice_service/models/.gitkeep
+*.pt
+*.safetensors
+*.bin
+*.onnx
 
 # Python
 .pytest_cache/
