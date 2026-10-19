@@ -21,13 +21,16 @@ DEFAULT_DEST = ROOT_DIR / "voice_service" / "models" / "chatterbox_v3"
 
 # Mandatory assets for Chatterbox Multilingual V3
 REQUIRED_ASSETS = [
-    "t3_mtl23ls_v3.safetensors",  # Core V3 T3 backbone checkpoint (~2.14 GB)
+    "t3_mtl23ls_v3.safetensors",  # Core V3 T3 backbone checkpoint (~2.04 GB)
+    "s3gen.pt",                   # S3Gen vocoder / audio generation model (~1.0 GB)
+    "ve.pt",                      # Voice encoder model (~5.4 MB)
+    "grapheme_mtl_merged_expanded_v1.json", # Multilingual tokenizer mapping
+    "conds.pt",                   # Default speaker conditional prompts
+    "Cangjie5_TC.json",           # Chinese grapheme mappings
 ]
 
 OPTIONAL_CORE_ASSETS = [
-    "s3gen_v3.safetensors",
     "s3gen_v3.pt",
-    "ve.pt",
     "mtl_tokenizer.json",
     "tokenizer.json",
 ]
@@ -57,38 +60,44 @@ def verify_checkpoint(dest_path: Path, test_init: bool = True) -> bool:
 
     logger.info(f"Total downloaded assets size: {round(total_size_mb, 2)} MB")
 
-    # 1. Verify mandatory V3 checkpoint t3_mtl23ls_v3.safetensors
-    if "t3_mtl23ls_v3.safetensors" not in files:
-        logger.error(
-            "FAIL: Critical V3 model asset 't3_mtl23ls_v3.safetensors' is MISSING. "
-            "ChatterboxMultilingualTTS(t3_model='v3') will fail to load."
-        )
-        return False
+    # Verify all required assets
+    for asset in REQUIRED_ASSETS:
+        if asset not in files:
+            logger.error(f"FAIL: Required V3 asset '{asset}' is MISSING.")
+            return False
 
     v3_size_mb = files["t3_mtl23ls_v3.safetensors"].stat().st_size / (1024 * 1024)
-    if v3_size_mb < 1500.0:  # Must be ~2.14 GB
+    if v3_size_mb < 1500.0:
         logger.error(
             f"FAIL: 't3_mtl23ls_v3.safetensors' is incomplete or corrupted "
-            f"({round(v3_size_mb, 2)} MB, expected ~2140 MB)."
+            f"({round(v3_size_mb, 2)} MB, expected ~2044 MB)."
         )
         return False
 
-    logger.info("SUCCESS: 't3_mtl23ls_v3.safetensors' checkpoint verified (valid size).")
+    s3_size_mb = files["s3gen.pt"].stat().st_size / (1024 * 1024)
+    if s3_size_mb < 800.0:
+        logger.error(
+            f"FAIL: 's3gen.pt' is incomplete or corrupted "
+            f"({round(s3_size_mb, 2)} MB, expected ~1008 MB)."
+        )
+        return False
+
+    logger.info("SUCCESS: All required official Chatterbox V3 assets verified.")
 
     # 2. Test class initialization if requested and package is available
     if test_init:
         try:
-            from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-            logger.info("Testing ChatterboxMultilingualTTS model initialization on CPU...")
-            model = ChatterboxMultilingualTTS.from_pretrained(device="cpu", t3_model="v3")
+            from voice_service.app.inference import load_chatterbox_model
+            logger.info("Testing Chatterbox model initialization on CPU...")
+            model = load_chatterbox_model(device="cpu", checkpoint_dir=dest_path)
             if model is None:
-                logger.error("FAIL: ChatterboxMultilingualTTS returned None.")
+                logger.error("FAIL: Chatterbox loader returned None.")
                 return False
-            logger.info("SUCCESS: Official ChatterboxMultilingualTTS class initialized from checkpoint.")
+            logger.info("SUCCESS: Official Chatterbox model class initialized from checkpoint on CPU.")
         except ImportError as ie:
-            logger.warning(f"Note: chatterbox-tts package not installed in current environment ({ie}). Skipping class initialization.")
+            logger.warning(f"Note: module import error ({ie}). Skipping class initialization.")
         except Exception as e:
-            logger.error(f"FAIL: ChatterboxMultilingualTTS initialization test failed: {e}")
+            logger.error(f"FAIL: Chatterbox initialization test failed: {e}")
             return False
 
     logger.info("Verification SUCCESS: Official Chatterbox V3 assets verified.")
@@ -99,6 +108,7 @@ def download_weights(repo_id: str, dest_path: Path, token: str = None):
     """Downloads weights from Hugging Face Hub with authentication error handling."""
     logger.info(f"Connecting to Hugging Face repository: '{repo_id}'...")
     logger.info(f"Target destination: {dest_path}")
+    logger.info(f"Assets to download: {REQUIRED_ASSETS}")
 
     try:
         from huggingface_hub import snapshot_download
@@ -113,6 +123,7 @@ def download_weights(repo_id: str, dest_path: Path, token: str = None):
         snapshot_download(
             repo_id=repo_id,
             local_dir=str(dest_path),
+            allow_patterns=REQUIRED_ASSETS,
             token=hf_token,
             resume_download=True,
         )

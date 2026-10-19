@@ -11,7 +11,14 @@ sys.path.insert(0, str(backend_path))
 sys.path.insert(0, str(backend_path.parent))
 
 from app.db.session import Base, get_db
+# Import all models to ensure Base.metadata contains all tables
+from app.models.user import User
+from app.models.revival import Revival, VoiceAsset
+from app.models.conversation import Conversation, Message
+from app.models.memory import Memory
+
 from app.main import app
+from app.services.chatterbox_engine import chatterbox_engine
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_ex_revival.db"
 
@@ -34,6 +41,23 @@ async def setup_test_db():
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture(autouse=True)
+def mock_voice_synthesis_in_unit_tests(monkeypatch):
+    """
+    Prevents unit tests from hanging on long CPU neural Chatterbox synthesis calls.
+    Returns a valid dummy audio path for test assertions.
+    """
+    test_audio_path = str(backend_path / "test_synth.wav")
+    if not os.path.exists(test_audio_path):
+        with open(test_audio_path, "wb") as f:
+            f.write(b"RIFF" + b"\x00" * 1000)
+
+    async def _mock_synthesize(text, reference_audio_path, language="en", emotion="warm"):
+        return test_audio_path
+
+    monkeypatch.setattr(chatterbox_engine, "synthesize", _mock_synthesize)
 
 
 @pytest.fixture
