@@ -86,9 +86,9 @@ class ApiService {
 
   Future<dynamic> multipartPost({
     required String path,
-    required String fileField,
-    required Uint8List fileBytes,
-    required String filename,
+    String? fileField,
+    Uint8List? fileBytes,
+    String? filename,
     Map<String, String>? fields,
   }) async {
     try {
@@ -101,21 +101,35 @@ class ApiService {
         request.fields.addAll(fields);
       }
 
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          fileField,
-          fileBytes,
-          filename: filename,
-          contentType: MediaType('audio', 'wav'),
-        ),
-      );
+      if (fileBytes != null && fileField != null) {
+        MediaType mediaType;
+        final fn = (filename ?? '').toLowerCase();
+        if (fn.endsWith('.mp3')) {
+          mediaType = MediaType('audio', 'mpeg');
+        } else if (fn.endsWith('.ogg') || fn.endsWith('.oga') || fn.endsWith('.opus')) {
+          mediaType = MediaType('audio', 'ogg');
+        } else if (fn.endsWith('.m4a') || fn.endsWith('.aac') || fn.endsWith('.mp4')) {
+          mediaType = MediaType('audio', 'mp4');
+        } else {
+          mediaType = MediaType('audio', 'wav');
+        }
+
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fileField,
+            fileBytes,
+            filename: filename ?? 'audio.wav',
+            contentType: mediaType,
+          ),
+        );
+      }
 
       final streamedResponse = await request.send().timeout(AppConfig.requestTimeout);
       final response = await http.Response.fromStream(streamedResponse);
       return _processResponse(response);
     } catch (e) {
       if (e is AppError) rethrow;
-      throw NetworkError('Failed to upload audio: ${e.toString()}');
+      throw NetworkError('Failed to send request: ${e.toString()}');
     }
   }
 

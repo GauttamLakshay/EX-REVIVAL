@@ -35,12 +35,12 @@ class ConversationRepository {
     Uint8List? audioBytes,
     String? clientTranscript,
   }) async {
-    if (audioBytes != null && audioBytes.isNotEmpty) {
-      final Map<String, String> fields = {};
-      if (clientTranscript != null && clientTranscript.isNotEmpty) {
-        fields['client_transcript'] = clientTranscript;
-      }
+    final Map<String, String> fields = {};
+    if (clientTranscript != null && clientTranscript.isNotEmpty) {
+      fields['client_transcript'] = clientTranscript;
+    }
 
+    if (audioBytes != null && audioBytes.isNotEmpty) {
       final res = await _api.multipartPost(
         path: 'conversations/$conversationId/turns',
         fileField: 'audio_file',
@@ -50,10 +50,10 @@ class ConversationRepository {
       );
       return ConversationTurnResult.fromJson(res);
     } else {
-      // Form-only submission with text transcript
-      final res = await _api.post(
-        'conversations/$conversationId/turns',
-        body: {'client_transcript': clientTranscript ?? ''},
+      // Form submission for text turns matching FastAPI File/Form expectations
+      final res = await _api.multipartPost(
+        path: 'conversations/$conversationId/turns',
+        fields: fields,
       );
       return ConversationTurnResult.fromJson(res);
     }

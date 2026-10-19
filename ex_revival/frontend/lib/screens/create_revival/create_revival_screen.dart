@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
@@ -26,19 +27,21 @@ class _CreateRevivalScreenState extends State<CreateRevivalScreen> {
   String? _audioFilename;
   bool _isRecording = false;
   int _recordDuration = 0;
+  StreamSubscription<int>? _durationSub;
 
   bool _isAuthorizedConfirmed = false;
 
   @override
   void initState() {
     super.initState();
-    audioRecorderService.durationStream.listen((sec) {
+    _durationSub = audioRecorderService.durationStream.listen((sec) {
       if (mounted) setState(() => _recordDuration = sec);
     });
   }
 
   @override
   void dispose() {
+    _durationSub?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -194,7 +197,17 @@ class _CreateRevivalScreenState extends State<CreateRevivalScreen> {
       voiceAuthorized: true,
     );
 
-    if (revival == null) return;
+    if (revival == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(revivalProv.errorMessage ?? 'Failed to create Revival. Please try again.'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+      return;
+    }
 
     // 2. Upload Voice Sample
     final uploadSuccess = await revivalProv.uploadVoice(
@@ -206,6 +219,13 @@ class _CreateRevivalScreenState extends State<CreateRevivalScreen> {
 
     if (uploadSuccess && mounted) {
       Navigator.pushReplacementNamed(context, AppRouter.characterSetup);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(revivalProv.errorMessage ?? 'Failed to upload voice sample.'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 

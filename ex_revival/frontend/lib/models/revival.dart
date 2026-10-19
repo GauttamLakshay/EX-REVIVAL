@@ -39,6 +39,7 @@ class Revival {
   final String speakingStyle;
   final String relationshipContext;
   final String? referenceAudioPath;
+  final String? personalityDna;
   final bool voiceAuthorized;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -53,6 +54,7 @@ class Revival {
     required this.speakingStyle,
     required this.relationshipContext,
     this.referenceAudioPath,
+    this.personalityDna,
     required this.voiceAuthorized,
     required this.createdAt,
     required this.updatedAt,
@@ -72,6 +74,7 @@ class Revival {
       speakingStyle: json['speaking_style'] ?? '',
       relationshipContext: json['relationship_context'] ?? '',
       referenceAudioPath: json['reference_audio_path'],
+      personalityDna: json['personality_dna'],
       voiceAuthorized: json['voice_authorized'] ?? false,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),

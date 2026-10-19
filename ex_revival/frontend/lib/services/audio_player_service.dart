@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:frontend/core/config/app_config.dart';
 
 enum PlayerStatus { idle, loading, playing, paused, completed, error }
@@ -24,6 +27,7 @@ class AudioPlayerService {
   Duration get position => _position;
   Duration get duration => _duration;
   bool get isPlaying => _status == PlayerStatus.playing;
+  String? get currentUrl => _currentUrl;
 
   AudioPlayerService() {
     _initListeners();
@@ -79,8 +83,56 @@ class AudioPlayerService {
       }
 
       _currentUrl = fullUrl;
-      await _player.stop();
-      await _player.play(UrlSource(fullUrl));
+      try {
+        await _player.stop();
+      } catch (_) {}
+
+      // On Web: stream directly via UrlSource
+      if (kIsWeb) {
+        await _player.play(UrlSource(fullUrl));
+        return;
+      }
+
+      // If already a local file path
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        final localPath = fullUrl.startsWith('file://') ? fullUrl.substring(7) : fullUrl;
+        await _player.play(DeviceFileSource(localPath));
+        return;
+      }
+
+      // For network audio (bypasses Android native MediaPlayer localhost/cleartext issues):
+      // Download bytes via Dart HTTP client and play from local application cache.
+      try {
+        final uri = Uri.parse(fullUrl);
+        final rawFilename = uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.last
+            : 'audio_${fullUrl.hashCode}.wav';
+        final cleanFilename = rawFilename.replaceAll(RegExp(r'[^a-zA-Z0-9_\-\.]'), '_');
+        final tempDir = await getTemporaryDirectory();
+        final cacheFile = File('${tempDir.path}/$cleanFilename');
+
+        if (await cacheFile.exists() && await cacheFile.length() > 0) {
+          debugPrint('[AudioPlayer] Playing from local cache: ${cacheFile.path}');
+          await _player.play(DeviceFileSource(cacheFile.path));
+          return;
+        }
+
+        debugPrint('[AudioPlayer] Downloading audio from $fullUrl');
+        final response = await http.get(uri).timeout(const Duration(seconds: 15));
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          await cacheFile.writeAsBytes(response.bodyBytes);
+          debugPrint('[AudioPlayer] Saved ${response.bodyBytes.length} bytes to ${cacheFile.path}');
+          await _player.play(DeviceFileSource(cacheFile.path));
+          return;
+        } else {
+          debugPrint('[AudioPlayer] HTTP download status ${response.statusCode}, falling back to UrlSource');
+          await _player.play(UrlSource(fullUrl));
+          return;
+        }
+      } catch (cacheErr) {
+        debugPrint('[AudioPlayer] Cache strategy failed: $cacheErr, falling back to UrlSource');
+        await _player.play(UrlSource(fullUrl));
+      }
     } catch (e) {
       debugPrint('[AudioPlayer] Playback error: $e');
       _status = PlayerStatus.error;

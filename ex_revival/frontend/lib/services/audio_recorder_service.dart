@@ -51,7 +51,7 @@ class AudioRecorderService {
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.wav,
-          sampleRate: 24000,
+          sampleRate: 16000,
           numChannels: 1,
         ),
         path: filePath,
@@ -102,8 +102,8 @@ class AudioRecorderService {
         final file = File(path);
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
-          if (bytes.length < 500) {
-            throw Exception('Recording is empty. Please speak clearly into the microphone.');
+          if (bytes.length < 8000) {
+            throw Exception('Recording was too short. Hold the microphone while speaking.');
           }
           return bytes;
         }

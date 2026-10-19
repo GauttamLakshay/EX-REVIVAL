@@ -20,6 +20,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
   final TextEditingController _textInputController = TextEditingController();
   bool _showTextInput = false;
 
+  int _lastMessageCount = 0;
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -58,8 +60,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
     final messages = conv.messages;
     final state = conv.state;
 
-    // Scroll down when new messages arrive
-    if (messages.isNotEmpty) {
+    // Scroll down only when new messages are added
+    if (messages.length > _lastMessageCount) {
+      _lastMessageCount = messages.length;
       _scrollToBottom();
     }
 

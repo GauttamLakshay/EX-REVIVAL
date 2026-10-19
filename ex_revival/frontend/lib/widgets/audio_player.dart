@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/services/audio_player_service.dart';
@@ -21,24 +22,43 @@ class _AudioPlayerBarWidgetState extends State<AudioPlayerBarWidget> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
 
+  StreamSubscription<PlayerStatus>? _statusSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration>? _durationSub;
+
   @override
   void initState() {
     super.initState();
-    audioPlayerService.statusStream.listen((status) {
+    _statusSub = audioPlayerService.statusStream.listen((status) {
       if (mounted) {
+        final current = audioPlayerService.currentUrl;
+        final isThisPlaying = status == PlayerStatus.playing &&
+            current != null &&
+            (current == widget.audioUrl || current.endsWith(widget.audioUrl));
         setState(() {
-          _isPlaying = status == PlayerStatus.playing;
+          _isPlaying = isThisPlaying;
+          if (!isThisPlaying && status == PlayerStatus.idle) {
+            _position = Duration.zero;
+          }
         });
       }
     });
 
-    audioPlayerService.positionStream.listen((pos) {
-      if (mounted) setState(() => _position = pos);
+    _positionSub = audioPlayerService.positionStream.listen((pos) {
+      if (mounted && _isPlaying) setState(() => _position = pos);
     });
 
-    audioPlayerService.durationStream.listen((dur) {
-      if (mounted) setState(() => _duration = dur);
+    _durationSub = audioPlayerService.durationStream.listen((dur) {
+      if (mounted && _isPlaying) setState(() => _duration = dur);
     });
+  }
+
+  @override
+  void dispose() {
+    _statusSub?.cancel();
+    _positionSub?.cancel();
+    _durationSub?.cancel();
+    super.dispose();
   }
 
   void _togglePlay() {

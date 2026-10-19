@@ -57,7 +57,6 @@ class ConversationProvider extends ChangeNotifier {
 
     _ampSub = audioRecorderService.amplitudeStream.listen((amp) {
       _currentAmplitude = amp;
-      notifyListeners();
     });
 
     _playerSub = audioPlayerService.statusStream.listen((playerStatus) {
@@ -141,7 +140,7 @@ class ConversationProvider extends ChangeNotifier {
       await submitTurn(audioBytes: audioBytes);
     } catch (e) {
       _state = ConversationState.error;
-      _errorMessage = e.toString();
+      _errorMessage = _formatError(e);
       notifyListeners();
     }
   }
@@ -194,16 +193,36 @@ class ConversationProvider extends ChangeNotifier {
       if (result.audioUrl.isNotEmpty) {
         _state = ConversationState.speaking;
         notifyListeners();
-        await audioPlayerService.play(result.audioUrl);
+        try {
+          await audioPlayerService.play(result.audioUrl);
+        } catch (audioErr) {
+          debugPrint('[Conversation] Auto-play audio failed: $audioErr');
+          _state = ConversationState.idle;
+          notifyListeners();
+        }
       } else {
         _state = ConversationState.idle;
         notifyListeners();
       }
     } catch (e) {
       _state = ConversationState.error;
-      _errorMessage = e.toString();
+      _errorMessage = _formatError(e);
       notifyListeners();
     }
+  }
+
+  String _formatError(dynamic e) {
+    final raw = e.toString();
+    if (raw.contains('STT_FAILED')) {
+      return 'No speech detected. Hold while speaking.';
+    }
+    if (raw.contains('LLM_FAILED')) {
+      return 'AI model busy. Please try again.';
+    }
+    if (raw.contains('too short') || raw.contains('Too short')) {
+      return 'Hold microphone while speaking.';
+    }
+    return raw.replaceAll('Exception: ', '').replaceAll('AppError: ', '');
   }
 
   Future<void> playMessageAudio(Message message) async {
