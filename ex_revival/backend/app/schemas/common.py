@@ -21,3 +21,8 @@ class HealthResponse(BaseModel):
     llm_provider: str
     voice_engine: str
     mock_ai: bool
+    stt_status: Optional[str] = "available"
+    llm_status: Optional[str] = "available"
+    voice_status: Optional[str] = "available"
+    stt_model: Optional[str] = None
+    llm_model: Optional[str] = None

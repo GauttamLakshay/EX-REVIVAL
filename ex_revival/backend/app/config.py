@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Security
     JWT_SECRET: str = "super_secret_jwt_key_ex_revival_dev_2026_change_in_prod"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
 
     # Voice Service
     VOICE_SERVICE_URL: str = "http://localhost:8001"
@@ -26,10 +26,12 @@ class Settings(BaseSettings):
     STT_PROVIDER: str = "mock"
     STT_API_KEY: str = ""
     WHISPER_MODEL_SIZE: str = "base"
+    GEMINI_STT_MODEL: str = "gemini-3.5-transcribe"
 
     LLM_PROVIDER: str = "mock"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o-mini"
+    GEMINI_LLM_MODEL: str = "gemini-3.1-flash-lite"
     GEMINI_API_KEY: str = ""
 
     # Storage

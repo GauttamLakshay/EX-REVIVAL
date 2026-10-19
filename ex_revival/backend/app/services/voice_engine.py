@@ -10,6 +10,8 @@ class VoiceEngine(ABC):
         reference_audio_path: str,
         language: Optional[str] = "en",
         emotion: Optional[str] = "neutral",
+        exaggeration: Optional[float] = 0.72,
+        cfg_weight: Optional[float] = 0.68,
     ) -> str:
         """
         Synthesizes speech from text conditioned on the reference voice audio.

@@ -1,5 +1,7 @@
+import os
 import io
 import math
+import tempfile
 from typing import Tuple, Dict, Any
 import numpy as np
 import soundfile as sf
@@ -27,11 +29,31 @@ class AudioService:
         if len(audio_bytes) < 100:
             raise AudioValidationError("Audio file is empty or corrupted")
 
+        data = None
+        sample_rate = None
+
         try:
             bio = io.BytesIO(audio_bytes)
             data, sample_rate = sf.read(bio, dtype="float32")
-        except Exception as e:
-            raise AudioValidationError(f"Invalid audio format or unreadable stream: {str(e)}")
+        except Exception:
+            # Fallback: probe using temp file with original extension for libsndfile
+            ext = os.path.splitext(filename)[1].lower() if filename else ".wav"
+            if ext == ".oga":
+                ext = ".ogg"
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                    tmp.write(audio_bytes)
+                    tmp_path = tmp.name
+                data, sample_rate = sf.read(tmp_path, dtype="float32")
+            except Exception as e:
+                raise AudioValidationError(f"Invalid audio format or unreadable stream: {str(e)}")
+            finally:
+                if tmp_path and os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except Exception:
+                        pass
 
         # Calculate channels and shape
         if data.ndim == 1:
@@ -82,11 +104,12 @@ class AudioService:
         # Resample to TARGET_SAMPLE_RATE if different
         target_rate = cls.TARGET_SAMPLE_RATE
         if sample_rate != target_rate:
-            # Resample using linear interpolation or scipy resample
-            new_num_samples = int(len(normalized_samples) * (target_rate / sample_rate))
-            x_old = np.linspace(0, 1, len(normalized_samples))
-            x_new = np.linspace(0, 1, new_num_samples)
-            normalized_samples = np.interp(x_new, x_old, normalized_samples).astype(np.float32)
+            from math import gcd
+            import scipy.signal
+            g = gcd(int(sample_rate), int(target_rate))
+            up = int(target_rate) // g
+            down = int(sample_rate) // g
+            normalized_samples = scipy.signal.resample_poly(normalized_samples, up, down).astype(np.float32)
 
         # Write normalized audio to bytes
         out_bio = io.BytesIO()

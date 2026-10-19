@@ -42,4 +42,9 @@ class TurnResponse(BaseModel):
     stt_latency_ms: int = 0
     llm_latency_ms: int = 0
     voice_latency_ms: int = 0
+    total_latency_ms: Optional[int] = None
+    voice_engine: Optional[str] = "chatterbox_v3_neural"
+    voice_device: Optional[str] = "cpu"
+    model_version: Optional[str] = "v3"
+    model_loaded: Optional[bool] = True
     status: str = "completed"
